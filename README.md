@@ -1,115 +1,73 @@
-# Recipe API Project
+# Recipe API
 
-This project is a Recipe API built using Django and Django REST Framework (DRF). It allows users to perform CRUD operations on recipes, authenticate using JWT, and search for recipes based on various criteria.
+A Python API built with Django and Django REST Framework, with JWT authentication, recipes, categories, reviews, and recipe search. This repository demonstrates backend API development and integrations with Swagger documentation.
 
 ## Features
 
-- User authentication and authorization using JWT.
-- CRUD operations on recipes (Create, Read, Update, Delete).
-- Recipe details including title, description, ingredients, preparation steps, cooking time, and serving size.
-- Categorization of recipes into different categories.
-- Search and filter recipes based on title, category, and ingredients.
-- Swagger documentation for API endpoints.
+- User registration and JWT access/refresh tokens
+- Recipe creation, listing, updates, and deletion
+- Categories and recipe reviews
+- Search by title, category name, and ingredients
+- Swagger and ReDoc API documentation
+- SQLite for local development
 
-## Requirements
+## Local setup
 
-- Python 3.8+
+Use Python 3.10+ for the pinned Django 5.0.6 dependency.
 
-## Installation
+```sh
+git clone https://github.com/rajinder-mohan/recipe.git
+cd recipe
+python -m venv .venv
+source .venv/bin/activate
+# Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
 
-1. **Clone the repository:**
+Open http://127.0.0.1:8000/swagger/ or http://127.0.0.1:8000/redoc/ for interactive API documentation. The Django project package is named `receipe`; the API application is `recipesapp`.
 
-    ```sh
-    git clone https://github.com/your-username/recipe-api.git
-    cd recipe-api
-    ```
+## Authentication
 
-2. **Create and activate a virtual environment:**
+Register with `POST /api/signup/`, supplying `email`, `first_name`, `last_name`, `password`, and matching `password2`. Passwords must pass Django password validation.
 
-    ```sh
-    python -m venv venv
-    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-    ```
+Registration stores the email address as the Django username. The standard Simple JWT token endpoint expects `username`, not `email`:
 
-3. **Install the required packages:**
+```sh
+curl -X POST http://127.0.0.1:8000/api/token/ \
+  -H "Content-Type: application/json" \
+  -d '{"username":"user@example.com","password":"your-password"}'
+```
 
-    ```sh
-    pip install -r requirements.txt
-    ```
+Send the returned access token as `Authorization: Bearer <access-token>`. Refresh it through `POST /api/token/refresh/` with the `refresh` token.
 
-4. **Apply migrations:**
+## API routes
 
-    ```sh
-    python manage.py makemigrations
-    python manage.py migrate
-    ```
+- `POST /api/signup/`: register
+- `POST /api/token/` and `POST /api/token/refresh/`: obtain/refresh tokens
+- `GET/POST /api/recipes/`: list/create recipes
+- `GET/PUT/DELETE /api/recipes/{id}/`: recipe detail/update/delete
+- `GET/POST /api/categories/`: list/create categories
+- `GET/PUT/DELETE /api/categories/{id}/`: category detail/update/delete
+- `GET/POST /api/reviews/`: list/create reviews
+- `GET/PUT/DELETE /api/reviews/{id}/`: review detail/update/delete
+- `GET /api/search/?title=&category=&ingredients=`: search recipes
 
-5. **Create a superuser:**
+Create a category with `{"name":"Dinner"}` and use its returned ID when creating a recipe. Recipe fields are `title`, `description`, `ingredients`, `preparation_steps`, `cooking_time` (minutes), `serving_size`, and `category`.
 
-    ```sh
-    python manage.py createsuperuser
-    ```
+Category routes require authentication. Recipe and review writes require authentication, and detail operations currently filter to the signed-in user's records. Search and recipe/review list routes permit anonymous reads.
 
-6. **Run the development server:**
+## Development checks
 
-    ```sh
-    python manage.py runserver
-    ```
+```sh
+python manage.py check
+python manage.py test
+```
 
-7. **Access the API documentation:**
+The current `recipesapp/tests.py` is a scaffold with no implemented tests. Passing the test command does not yet demonstrate API test coverage.
 
-    Open your browser and navigate to `http://127.0.0.1:8000/swagger/` for Swagger UI or `http://127.0.0.1:8000/redoc/` for Redoc.
+## Deployment status
 
-## Usage
-
-### Endpoints
-
-- **User Registration:** `POST /api/signup/`
-- **Token Obtain Pair:** `POST /api/token/`
-- **Token Refresh:** `POST /api/token/refresh/`
-- **Recipe List/Create:** `GET/POST /api/recipes/`
-- **Recipe Detail/Update/Delete:** `GET/PUT/DELETE /api/recipes/{id}/`
-- **Category List:** `GET /api/categories/`
-- **Review List/Create:** `GET/POST /api/reviews/`
-- **Review Detail/Update/Delete:** `GET/PUT/DELETE /api/reviews/{id}/`
-- **Recipe Search:** `GET /api/search/?title=&category=&ingredients=`
-
-### Example Requests
-
-- **User Registration:**
-
-    ```json
-    POST /api/signup/
-    {
-        "email": "user@example.com",
-        "first_name": "John",
-        "last_name": "Doe",
-        "password": "yourpassword",
-        "password2": "yourpassword"
-    }
-    ```
-
-- **Token Obtain Pair:**
-
-    ```json
-    POST /api/token/
-    {
-        "email": "user@example.com",
-        "password": "yourpassword"
-    }
-    ```
-
-- **Create Recipe:**
-
-    ```json
-    POST /api/recipes/
-    {
-        "title": "Biryani",
-        "description": "Rice dish veg and non veg",
-        "ingredients": "Rice, chicken, salt, cinnamon, custard",
-        "preparation_steps": "boil rice. mix curd with vegetables and chicken then cook in handi",
-        "cooking_time": 60,
-        "serving_size": 2,
-        "category": 2
-    }
-    ```
+The checked-in settings are for local development: debug mode is enabled, hosts are unrestricted, and the signing key is a development value. Configure production settings and a private signing key before deployment. This README does not claim production readiness or automated test coverage.
